@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum EventStatus {
+  SCHEDULED
+  ACTIVE
+  FINISHED
+}
+
+enum Visibility {
+  VISIBLE
+  HIDDEN
+}
+
+enum AdminRole {
+  OWNER
+  COLLABORATOR
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+enum RemovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id         String   @id @default(cuid())
+  googleId   String   @unique
+  email      String   @unique
+  name       String
+  publicName String
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  posts               Post[]
+  likes               Like[]
+  comments            Comment[]
+  reports             Report[]
+  informationRequests InformationRequest[]
+  removalRequests     RemovalRequest[]
+}
+
+model Admin {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(COLLABORATOR)
+  createdAt    DateTime  @default(now())
+
+  auditLogs AuditLog[]
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  slug        String      @unique @default("inauguracion-senati")
+  title       String
+  description String?
+  status      EventStatus @default(SCHEDULED)
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime    @default(now())
+
+  posts Post[]
+}
+
+model Post {
+  id         String     @id @default(cuid())
+  userId     String
+  eventId    String
+  message    String?    @db.VarChar(500)
+  visibility Visibility @default(VISIBLE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  editedAt   DateTime?
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event    Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  images   PostImage[]
+  likes    Like[]
+  comments Comment[]
+  reports  Report[]
+  removals RemovalRequest[]
+
+  @@index([eventId, visibility, createdAt(sort: Desc)])
+  @@index([userId])
+}
+
+model PostImage {
+  id                 String   @id @default(cuid())
+  postId             String
+  cloudinaryPublicId String   @unique
+  originalUrl        String
+  position           Int
+  width              Int
+  height             Int
+  createdAt          DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, position])
+  @@index([postId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  content   String   @db.VarChar(300)
+  removed   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reports Report[]
+
+  @@index([postId, createdAt])
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  reporterId String
+  postId     String?
+  commentId  String?
+  reason     String       @db.VarChar(500)
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+
+  reporter User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  post     Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment  Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+model InformationRequest {
+  id               String   @id @default(cuid())
+  userId           String?
+  name             String
+  email            String
+  whatsapp         String?
+  career           String   @default("Ingeniería de Software con Inteligencia Artificial")
+  consentGiven     Boolean  @default(false)
+  consentTimestamp DateTime?
+  consentText      String?  // texto exacto mostrado al usuario (evidencia)
+  consentIp        String?
+  createdAt        DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}
+
+model RemovalRequest {
+  id        String        @id @default(cuid())
+  userId    String
+  postId    String?
+  reason    String        @db.VarChar(1000)
+  status    RemovalStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  target    String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
