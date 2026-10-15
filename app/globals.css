@@ -26,3 +26,14 @@ body {
 .input {
   @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-senati-500 focus:outline-none focus:ring-2 focus:ring-senati-100;
 }
+
+@layer base {
+  a:focus-visible, button:focus-visible {
+    @apply outline outline-2 outline-offset-4 outline-senati-500;
+  }
+  button:disabled { cursor: not-allowed; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

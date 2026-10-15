@@ -7,13 +7,24 @@ import { get, set, del } from "idb-keyval";
 import { Camera, ImagePlus, X, Loader2 } from "lucide-react";
 import { ALLOWED_MIME, MAX_FILE_BYTES, MAX_IMAGES } from "@/lib/validations";
 
+function PhotoPreview({ file, index }: { file: File; index: number }) {
+  const [src, setSrc] = useState("");
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    setSrc(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+  // eslint-disable-next-line @next/next/no-img-element
+  return src ? <img src={src} alt={`Vista previa ${index + 1}`} className="h-full w-full object-cover" /> : null;
+}
+
 const DRAFT_KEY = "senati-draft";
 
 type Draft = { files: File[]; message: string };
 
 /**
  * Estrategia de borrador: los File se guardan en IndexedDB (soporta Blobs) en el propio
- * dispositivo antes de redirigir a Google; al volver se restauran y, con ?resume=1, se publica solo.
+ * dispositivo antes de redirigir a Google; al volver se restauran para que el visitante revise antes de publicar.
  * No sale nada del dispositivo hasta que el usuario está autenticado.
  */
 export function PublishForm({ isAuthed, resume }: { isAuthed: boolean; resume: boolean }) {
@@ -24,7 +35,9 @@ export function PublishForm({ isAuthed, resume }: { isAuthed: boolean; resume: b
   const [error, setError] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
-  const resumed = useRef(false);
+  const publishing = useRef(false);
+  const [progress, setProgress] = useState("");
+  const [restored, setRestored] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -32,11 +45,8 @@ export function PublishForm({ isAuthed, resume }: { isAuthed: boolean; resume: b
       if (!draft) return;
       setFiles(draft.files);
       setMessage(draft.message);
-      if (isAuthed && resume && !resumed.current && draft.files.length) {
-        resumed.current = true;
-        await publish(draft.files, draft.message);
-      }
-    })();
+      setRestored(true);
+    })().catch(() => setError("No pudimos recuperar el borrador de este dispositivo. Puedes seleccionar tus fotos nuevamente."));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -44,31 +54,46 @@ export function PublishForm({ isAuthed, resume }: { isAuthed: boolean; resume: b
     if (!list) return;
     setError(null);
     const next = [...files];
+    const issues = new Set<string>();
     for (const f of Array.from(list)) {
-      if (!ALLOWED_MIME.includes(f.type)) return setError("Formato no permitido. Usa JPG, PNG, WebP o HEIC.");
-      if (f.size > MAX_FILE_BYTES) return setError("Cada fotografía debe pesar menos de 15 MB.");
-      if (next.length >= MAX_IMAGES) return setError(`Máximo ${MAX_IMAGES} fotografías.`);
+      if (!ALLOWED_MIME.includes(f.type)) { issues.add("Usa JPG, PNG, WebP o HEIC."); continue; }
+      if (f.size > MAX_FILE_BYTES) { issues.add("Cada fotografía debe pesar menos de 15 MB."); continue; }
+      if (next.some(existing => existing.name === f.name && existing.size === f.size && existing.lastModified === f.lastModified)) continue;
+      if (next.length >= MAX_IMAGES) { issues.add(`Puedes seleccionar hasta ${MAX_IMAGES} fotografías.`); continue; }
       next.push(f);
     }
+    if (issues.size) setError([...issues].join(" "));
+
     setFiles(next);
   }
 
   async function onPublish() {
+    if (publishing.current || busy) return;
     if (!files.length) return setError("Agrega al menos una fotografía.");
     if (!isAuthed) {
-      await set(DRAFT_KEY, { files, message } satisfies Draft);
-      await signIn("google", { callbackUrl: "/evento/publicar?resume=1" });
+      setBusy(true);
+      setError(null);
+      try {
+        await set(DRAFT_KEY, { files, message } satisfies Draft);
+        await signIn("google", { callbackUrl: "/evento/publicar?resume=1" });
+      } catch {
+        setError("No se pudo iniciar sesión o guardar el borrador. Tus fotos siguen aquí; inténtalo otra vez.");
+        setBusy(false);
+      }
       return;
     }
     await publish(files, message);
   }
 
   async function publish(toUpload: File[], msg: string) {
+    if (publishing.current) return;
+    publishing.current = true;
     setBusy(true);
     setError(null);
     try {
       const publicIds: string[] = [];
-      for (const file of toUpload) {
+      for (const [index, file] of toUpload.entries()) {
+        setProgress(`Subiendo foto ${index + 1} de ${toUpload.length}…`);
         const sigRes = await fetch("/api/uploads/sign", { method: "POST" });
         if (!sigRes.ok) throw new Error((await sigRes.json()).error ?? "No se pudo autorizar la subida.");
         const s = await sigRes.json();
@@ -83,27 +108,34 @@ export function PublishForm({ isAuthed, resume }: { isAuthed: boolean; resume: b
         if (!up.ok) throw new Error("Falló la subida de una fotografía.");
         publicIds.push((await up.json()).public_id);
       }
+      setProgress("Guardando tu publicación…");
       const res = await fetch("/api/posts", {
         method: "POST",
         body: JSON.stringify({ message: msg, images: publicIds.map((publicId) => ({ publicId })) }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "No se pudo publicar.");
-      await del(DRAFT_KEY);
-      router.push("/evento");
-    } catch (e: any) {
-      setError(e.message ?? "Error inesperado.");
+      await del(DRAFT_KEY).catch(() => undefined);
+      router.replace("/evento");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo publicar. Inténtalo nuevamente.");
       setBusy(false);
+    } finally {
+      publishing.current = false;
     }
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-4">
+      <div className="py-3"><p className="text-xs font-semibold uppercase tracking-widest text-senati-600">Un momento para compartir</p><h1 className="mt-2 text-2xl font-black">Publica tus fotografías</h1><p className="mt-2 text-sm text-slate-500">Elige hasta cinco fotos y acompáñalas con un mensaje.</p></div>
+      {restored && <p role="status" className="rounded-xl bg-senati-50 p-4 text-sm text-senati-800">{resume ? "Ya puedes continuar. " : ""}Recuperamos tu borrador. Revisa tus fotos antes de publicar.</p>}
+      {!files.length && <div className="card flex flex-col items-center border-2 border-dashed border-slate-200 p-8 text-center"><ImagePlus className="mb-3 h-9 w-9 text-senati-500" /><p className="font-semibold">¿Qué momento quieres compartir?</p><p className="mt-2 text-sm text-slate-500">Toma una foto o selecciónala de tu galería.</p></div>}
       <div className="grid grid-cols-3 gap-2">
         {files.map((f, i) => (
           <div key={i} className="relative aspect-square overflow-hidden rounded-xl">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={URL.createObjectURL(f)} alt={`Vista previa ${i + 1}`} className="h-full w-full object-cover" />
-            <button aria-label="Quitar" onClick={() => setFiles(files.filter((_, j) => j !== i))} className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white">
+            <PhotoPreview file={f} index={i} />
+            <button disabled={busy} aria-label={`Quitar fotografía ${i + 1}`} onClick={() => setFiles(files.filter((_, j) => j !== i))} className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -111,23 +143,25 @@ export function PublishForm({ isAuthed, resume }: { isAuthed: boolean; resume: b
       </div>
 
       <div className="flex gap-2">
-        <button type="button" className="btn btn-ghost flex-1" onClick={() => cameraRef.current?.click()} disabled={files.length >= MAX_IMAGES}>
+        <button type="button" className="btn btn-ghost flex-1" onClick={() => cameraRef.current?.click()} disabled={busy || files.length >= MAX_IMAGES}>
           <Camera className="h-4 w-4" /> Tomar foto
         </button>
-        <button type="button" className="btn btn-ghost flex-1" onClick={() => galleryRef.current?.click()} disabled={files.length >= MAX_IMAGES}>
+        <button type="button" className="btn btn-ghost flex-1" onClick={() => galleryRef.current?.click()} disabled={busy || files.length >= MAX_IMAGES}>
           <ImagePlus className="h-4 w-4" /> Galería
         </button>
       </div>
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
       <input ref={galleryRef} type="file" accept={ALLOWED_MIME.join(",")} multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
 
-      <textarea className="input min-h-24" maxLength={500} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Escribe un mensaje (opcional)" />
+      <label htmlFor="post-message" className="block text-sm font-semibold">Tu mensaje <span className="font-normal text-slate-400">(opcional)</span></label>
+      <textarea id="post-message" disabled={busy} className="input min-h-24" maxLength={500} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Escribe un mensaje (opcional)" />
+      <p className="text-right text-xs text-slate-400">{message.length}/500 caracteres</p>
       <p className="text-xs text-slate-500">{files.length}/{MAX_IMAGES} fotografías · Al publicar aceptas que se muestren en el muro y en la pantalla del evento.</p>
 
       {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
-      <button className="btn btn-primary w-full py-3" onClick={onPublish} disabled={busy}>
-        {busy ? <><Loader2 className="h-4 w-4 animate-spin" /> Publicando…</> : "Publicar"}
+      <button className="btn btn-primary w-full py-3" onClick={onPublish} disabled={busy || !files.length}>
+        {busy ? <><Loader2 className="h-4 w-4 animate-spin" /> {progress || "Conectando…"}</> : isAuthed ? "Publicar fotografías" : "Continuar con Google para publicar"}
       </button>
     </div>
   );

@@ -4,6 +4,7 @@ import { LogoutButton } from "@/components/administracion/AdminButtons";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await getCurrentAdmin(); // null en /admin/login
+  if (!admin) return <>{children}</>;
   return (
     <div className="min-h-screen">
       {admin && (

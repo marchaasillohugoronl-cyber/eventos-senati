@@ -16,6 +16,11 @@ export function useRealtime(onMessage: (m: RealtimeMessage) => void, onReconnect
   reconnect.current = onReconnect;
 
   useEffect(() => {
+    let disposed = false;
+    let disconnect: (() => void) | undefined;
+    async function connect() {
+    const available = await fetch("/api/realtime/token");
+    if (!available.ok || disposed) return;
     const seen = new Set<string>();
     const client = new Ably.Realtime({ authUrl: "/api/realtime/token", autoConnect: true });
     const channel = client.channels.get("senati-evento");
@@ -39,9 +44,12 @@ export function useRealtime(onMessage: (m: RealtimeMessage) => void, onReconnect
       }
     });
 
-    return () => {
+    disconnect = () => {
       channel.unsubscribe();
       client.close();
     };
+    }
+    void connect().catch(() => { /* La vista permite actualizar sin tiempo real. */ });
+    return () => { disposed = true; disconnect?.(); };
   }, []);
 }

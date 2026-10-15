@@ -16,9 +16,12 @@ export async function GET(req: NextRequest) {
     const user = await requireUser();
     const event = await getEvent();
     const sp = req.nextUrl.searchParams;
-    const limit = Math.min(Number(sp.get("limit") ?? 20), 50);
+    const requestedLimit = Number(sp.get("limit") ?? 20);
+    if (!Number.isInteger(requestedLimit) || requestedLimit < 1) throw new HttpError(400, "El tamaño de página no es válido.");
+    const limit = Math.min(requestedLimit, 50);
     const cursor = sp.get("cursor");
     const since = sp.get("since");
+    if (since && Number.isNaN(Date.parse(since))) throw new HttpError(400, "La fecha de sincronización no es válida.");
 
     const posts = await prisma.post.findMany({
       where: {
@@ -26,7 +29,7 @@ export async function GET(req: NextRequest) {
         visibility: "VISIBLE",
         ...(since ? { OR: [{ createdAt: { gt: new Date(since) } }, { updatedAt: { gt: new Date(since) } }] } : {}),
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: postInclude,

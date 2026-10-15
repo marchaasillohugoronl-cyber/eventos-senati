@@ -30,7 +30,9 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, x: number, y: number,
 
 async function makeQr(url: string, size: number) {
   // Nivel H + margen (zona de silencio) de 4 módulos, texto oscuro sobre blanco: alto contraste.
-  return QRCode.toCanvas(document.createElement("canvas"), url, { width: size, margin: 4, errorCorrectionLevel: "H", color: { dark: "#000000", light: "#ffffff" } });
+  const canvas = document.createElement("canvas");
+  await QRCode.toCanvas(canvas, url, { width: size, margin: 4, errorCorrectionLevel: "H", color: { dark: "#000000", light: "#ffffff" } });
+  return canvas;
 }
 
 async function drawPoster(url: string, orientation: "vertical" | "horizontal", title: string) {

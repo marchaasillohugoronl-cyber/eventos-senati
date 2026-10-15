@@ -94,7 +94,7 @@ export function TvScreen({ tvKey, appUrl }: { tvKey?: string; appUrl: string }) 
       setCurrent((c) => (c?.id === d.postId ? null : c));
     } else if (m.name === "like.updated") {
       setPosts((p) => p.map((x) => (x.id === d.postId ? { ...x, likeCount: d.likeCount } : x)));
-      setCurrent((c) => (c?.id === d.postId ? { ...c, likeCount: d.likeCount } : c));
+      setCurrent((c) => (c && c.id === d.postId ? { ...c, likeCount: d.likeCount } : c));
     } else if (m.name === "comment.created") {
       setFloating((f) => [...f.slice(-3), { id: d.comment.id, text: d.comment.content, author: d.comment.authorName, left: 5 + Math.random() * 20 }]);
       setTimeout(() => setFloating((f) => f.filter((x) => x.id !== d.comment.id)), 6000);

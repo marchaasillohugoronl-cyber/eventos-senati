@@ -5,7 +5,7 @@ import { prisma } from "@/lib/database/prisma";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [Google],
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 7 },
-  pages: { signIn: "/login" },
+  pages: { signIn: "/login", error: "/login" },
   callbacks: {
     async signIn({ account, profile }) {
       if (account?.provider !== "google" || !profile?.sub || !profile.email) return false;
@@ -32,7 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      if (token.uid) session.user.id = token.uid;
+      if (typeof token.uid === "string") session.user.id = token.uid;
       return session;
     },
   },

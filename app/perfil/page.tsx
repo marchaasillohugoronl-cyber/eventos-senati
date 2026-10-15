@@ -5,6 +5,7 @@ import { postInclude, serializePost } from "@/lib/posts";
 import { cldUrl } from "@/lib/cloudinary/urls";
 import { Header } from "@/components/ui/Header";
 import { PublicNameForm } from "@/components/ui/PublicNameForm";
+import { signOut } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export default async function PerfilPage() {
           <h2 className="font-bold text-senati-800">Mi cuenta</h2>
           <PublicNameForm initial={user.publicName} />
           <p className="text-sm text-slate-600">Cuenta de Google vinculada: <strong>{user.email}</strong> (privado, no se muestra a otros).</p>
+          <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}><button className="btn btn-ghost" type="submit">Cerrar sesión</button></form>
         </section>
 
         <section className="space-y-3">

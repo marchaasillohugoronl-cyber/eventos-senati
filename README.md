@@ -15,6 +15,10 @@ npm run db:seed          # crea el evento y el administrador principal
 npm run dev
 ```
 
+Ably está fijado en `2.20.0`: se verificó que compila con Next.js 14.2.35.
+La versión `2.29.0` produce `super keyword outside a method` al compilar el cliente.
+Antes de actualizar Ably, comprobar la compilación de `/evento` y `/tv`.
+
 ## 2. Servicios externos
 
 | Servicio | Qué crear | Variables |
@@ -31,7 +35,7 @@ npm run dev
 - **Esquema Prisma completo** (User, Admin, Event, Post, PostImage, Like con único, Comment, Report, InformationRequest, RemovalRequest, AuditLog).
 - **Auth visitantes** con Google y **auth admin** con correo/contraseña (bcrypt + JWT en cookie httpOnly), roles `OWNER` / `COLLABORATOR` verificados en el servidor.
 - **Muro** `/evento` con tiempo real, Me gusta, comentarios, reportes, descarga de originales y tarjeta promocional.
-- **Publicar** `/evento/publicar`: cámara/galería, hasta 5 fotos, subida directa firmada a Cloudinary, borrador en IndexedDB que sobrevive al login con Google y se publica solo al volver.
+- **Publicar** `/evento/publicar`: cámara/galería, hasta 5 fotos, subida directa firmada a Cloudinary, borrador en IndexedDB que sobrevive al login con Google y se recupera para revisar antes de publicar.
 - **TV** `/tv`: cola FIFO, 8 s por publicación, collage 2–5 fotos, ediciones sin reencolar, QR permanente, banner de la carrera, comentarios flotantes, caché local y re-sincronización tras desconexión.
 - **Admin** `/admin`: control manual del evento (iniciar/finalizar/reabrir), estadísticas, moderación, interesados, exportación a Excel (solo con consentimiento, solo OWNER), generador de **QR real** con afiche vertical A4 y horizontal 16:9 en PNG.
 - Páginas `/perfil`, `/ingenieria-software-ia`, `/privacidad`.
