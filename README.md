@@ -59,5 +59,6 @@ En producción, define también `AUTH_URL=https://eventshare-senati.vercel.app` 
 ## 6. Uso en el evento
 
 - Admin → `/admin` → **Iniciar evento**.
-- Computadora conectada a la TV: abre `https://TU-DOMINIO/tv` (o `/tv?key=TV_ACCESS_KEY`) en Chrome y pulsa **F11**.
+- La portada `/` muestra el panel de TV; `/tv` sigue disponible. Usa **Pantalla completa** o **F11**. Si configuraste `TV_ACCESS_KEY`, abre `/?key=TV_ACCESS_KEY` o `/tv?key=TV_ACCESS_KEY`.
+- El QR de TV abre `/login?callbackUrl=%2Fevento`: Google → muro → publicar fotos. La clave de TV no se incluye en el QR. Usa `NEXT_PUBLIC_APP_URL` con un dominio accesible desde los celulares; si está vacío o apunta a localhost, el QR de TV utiliza `https://eventshare-senati.vercel.app`. Para probar en la misma red, configura la dirección LAN del servidor.
 - Admin → **QR y afiches** → descarga los PNG.

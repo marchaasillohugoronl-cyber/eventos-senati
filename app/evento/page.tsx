@@ -9,11 +9,11 @@ export default async function EventoPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login?callbackUrl=/evento");
   return (
-    <>
+    <div className="event-theme min-h-screen">
       <Header />
       <main>
         <Feed />
       </main>
-    </>
+    </div>
   );
 }

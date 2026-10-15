@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import TvPage from "./tv/page";
 
-export default function Home() {
-  redirect("/evento");
-}
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Evento en pantalla · SENATI" };
+export default TvPage;

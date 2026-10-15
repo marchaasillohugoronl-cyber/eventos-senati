@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Camera, GraduationCap, RefreshCw, ImageIcon } from "lucide-react";
 import { PostCard } from "./PostCard";
+import { EventIntro } from "@/components/ui/EventIntro";
 import { useRealtime } from "@/lib/realtime/client";
 import type { PublicPost } from "@/lib/posts";
 
@@ -97,9 +98,12 @@ export function Feed() {
   const readOnly = status !== "ACTIVE";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 px-4 pb-28 pt-4">
-      <section className="flex items-start justify-between gap-4 py-3">
-        <div><p className="text-xs font-semibold uppercase tracking-widest text-senati-600">La comunidad en imágenes</p><h1 className="mt-1 text-2xl font-black tracking-tight">Muro del evento</h1><p className="mt-2 text-sm text-slate-500">Cada fotografía cuenta una parte de este día.</p></div>
+    <div className="event-feed pb-28">
+      <EventIntro eyebrow="Inauguración SENATI" title="Comparte la experiencia" description="Así vivimos la inauguración. Descubre los momentos de la comunidad y comparte los tuyos." />
+      <div className="relative mx-auto -mt-8 grid max-w-6xl items-start gap-6 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="min-w-0 space-y-5 border-t-4 border-[#34c9ef] bg-[#f2f2f2] pt-6">
+      <section className="flex items-center justify-between gap-4">
+        <div><h2 className="text-lg font-bold tracking-tight">Muro del evento</h2><p className="mt-1 text-xs text-slate-500">Los momentos que compartimos</p></div>
         <button aria-label="Actualizar muro" className="btn btn-ghost !p-3" disabled={loading || loadingMore} onClick={() => load()}><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></button>
       </section>
       {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}<button className="ml-2 font-semibold underline" onClick={() => load()}>Reintentar</button></div>}
@@ -124,9 +128,20 @@ export function Feed() {
 
       {!loading && !error && posts.length === 0 && <section className="card px-6 py-12 text-center"><ImageIcon className="mx-auto mb-4 h-10 w-10 text-senati-500" /><h2 className="font-bold">El álbum comienza contigo</h2><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">{status === "ACTIVE" ? "Comparte la primera fotografía y dale vida al muro." : "Aquí aparecerán las fotografías que comparta la comunidad durante el evento."}</p></section>}
       {cursor && <button className="btn btn-ghost w-full" disabled={loadingMore || loading} onClick={() => load(cursor)}>{loadingMore ? "Cargando…" : "Cargar más fotografías"}</button>}
+      </div>
+      <aside className="space-y-4 lg:sticky lg:top-40">
+        <section className="event-participate border border-white/10 bg-[#071528] p-7 text-white">
+          <span className="mb-4 inline-flex rounded-full bg-senati-50 px-3 py-1 text-xs font-semibold text-senati-700">{loading ? "Cargando evento" : error ? "Sin actualizar" : status === "ACTIVE" ? "Evento en curso" : status === "SCHEDULED" ? "Próximamente" : "Álbum del evento"}</span>
+          <h2 className="text-lg font-bold">Tu mirada también cuenta</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-300">Fotos con amigos, nuevos encuentros y momentos para recordar. Este álbum lo creamos juntos.</p>
+          {status === "ACTIVE" && <Link href="/evento/publicar" className="btn btn-primary mt-5 w-full"><Camera className="h-4 w-4" /> Compartir fotos</Link>}
+        </section>
+        <a href="https://www.senati.edu.pe/especialidades/tecnologias-de-la-informacion/ingenieria-de-software-con-inteligencia-artificial" className="block border border-slate-300 bg-white p-7 text-senati-900 transition hover:border-senati-500"><GraduationCap className="mb-4 h-7 w-7" /><p className="text-[10px] font-bold uppercase tracking-widest text-senati-600">Conoce tu próxima carrera</p><h2 className="mt-2 text-lg font-bold leading-snug">Ingeniería de Software con Inteligencia Artificial</h2><p className="mt-5 text-sm font-semibold">Descubre más en SENATI →</p></a>
+      </aside>
+      </div>
 
       {status === "ACTIVE" && (
-        <Link href="/evento/publicar" className="btn btn-primary fixed bottom-5 left-1/2 z-30 -translate-x-1/2 px-7 py-3.5 text-base shadow-xl">
+        <Link href="/evento/publicar" className="btn btn-primary fixed bottom-5 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap px-7 py-3.5 text-base shadow-xl lg:hidden">
           <Camera className="h-5 w-5" /> Publicar fotografías
         </Link>
       )}

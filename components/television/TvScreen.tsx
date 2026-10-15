@@ -6,6 +6,9 @@ import { get, set } from "idb-keyval";
 import { cldUrl } from "@/lib/cloudinary/urls";
 import { useRealtime } from "@/lib/realtime/client";
 import type { PublicPost } from "@/lib/posts";
+import Link from "next/link";
+import { Camera, Maximize, LogIn } from "lucide-react";
+import { EVENT_LOGIN_PATH, eventLoginUrl } from "@/lib/event-links";
 
 const SHOW_MS = 8000;
 const CACHE_KEY = "tv-posts";
@@ -19,6 +22,7 @@ export function TvScreen({ tvKey, appUrl }: { tvKey?: string; appUrl: string }) 
   const [floating, setFloating] = useState<Floating[]>([]);
   const [qr, setQr] = useState("");
   const [online, setOnline] = useState(true);
+  const [screenMessage, setScreenMessage] = useState("");
 
   const postsRef = useRef<PublicPost[]>([]);
   const queue = useRef<string[]>([]); // FIFO de ids NUEVOS (post.created)
@@ -29,7 +33,7 @@ export function TvScreen({ tvKey, appUrl }: { tvKey?: string; appUrl: string }) 
   postsRef.current = posts;
 
   useEffect(() => {
-    QRCode.toDataURL(`${appUrl}/evento`, { margin: 2, width: 400, errorCorrectionLevel: "M" }).then(setQr);
+    QRCode.toDataURL(eventLoginUrl(appUrl), { margin: 4, width: 400, errorCorrectionLevel: "M" }).then(setQr).catch(() => setScreenMessage("No se pudo generar el QR. Recarga la pantalla."));
   }, [appUrl]);
 
   const mergePosts = useCallback((incoming: PublicPost[]) => {
@@ -73,7 +77,7 @@ export function TvScreen({ tvKey, appUrl }: { tvKey?: string; appUrl: string }) 
 
   // Carga inicial: primero caché local (sirve sin Internet), luego red.
   useEffect(() => {
-    get<PublicPost[]>(CACHE_KEY).then((c) => c && setPosts(c));
+    get<PublicPost[]>(CACHE_KEY).then((c) => c && setPosts(c)).catch(() => {});
     sync(true);
     const t = setInterval(() => sync(false), 60_000); // red de seguridad además del tiempo real
     return () => clearInterval(t);
@@ -123,43 +127,62 @@ export function TvScreen({ tvKey, appUrl }: { tvKey?: string; appUrl: string }) 
 
   const isEmpty = posts.length === 0;
 
+  async function openFullscreen() {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch { setScreenMessage("Usa F11 para ver la pantalla completa."); }
+  }
+
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-gradient-to-br from-senati-900 via-senati-800 to-senati-600 text-white">
-      {isEmpty || !current ? (
-        <div className="grid h-full place-items-center text-center">
-          <div>
-            <h1 className="text-8xl font-black tracking-widest">SENATI</h1>
-            <p className="mt-4 text-4xl opacity-90">{title}</p>
-            <p className="mt-10 text-3xl">¡Bienvenido! Escanea el QR y comparte tus fotografías.</p>
-          </div>
+    <main className="event-theme tv-display flex min-h-screen flex-col bg-[#061426] text-white lg:h-dvh lg:overflow-hidden">
+      <header className="flex items-center justify-between gap-4 bg-white px-5 py-4 text-slate-600 sm:px-8">
+        <div className="flex items-center gap-5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/senati-logo.svg" alt="SENATI" width={120} height={34} className="h-8 w-auto" />
+          <span className="hidden border-l border-slate-200 pl-5 text-sm sm:block">{title}</span>
         </div>
-      ) : (
-        <Slide key={current.id} post={current} />
-      )}
+        <button onClick={openFullscreen} className="flex min-h-10 items-center gap-2 text-xs text-blue-700 sm:text-sm" aria-label="Alternar pantalla completa"><Maximize className="h-5 w-5" /><span className="hidden sm:inline">Pantalla completa</span></button>
+      </header>
 
-      {/* QR permanente (esquina inferior derecha) */}
-      <div className="absolute bottom-6 right-6 z-20 rounded-2xl bg-white p-3 text-center text-senati-800 shadow-2xl">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {qr && <img src={qr} alt="QR del muro" className="h-44 w-44" />}
-        <p className="text-sm font-bold">Comparte tus fotos</p>
-      </div>
-
-      {/* Banner discreto de la carrera (esquina inferior izquierda) */}
-      <div className="absolute bottom-6 left-6 z-20 rounded-full bg-white/15 px-6 py-2 text-lg backdrop-blur">
-        Ingeniería de Software con IA · SENATI
-      </div>
-
-      {/* Comentarios flotantes: columna izquierda alta, lejos del QR y de la zona central de rostros */}
-      <div className="pointer-events-none absolute left-6 top-24 z-10 w-80 space-y-2">
-        {floating.map((f) => (
-          <div key={f.id} className="animate-floatUp rounded-2xl bg-black/50 px-4 py-2 text-lg backdrop-blur">
-            <b>{f.author}:</b> {f.text}
+      <div className="grid flex-1 min-h-0 lg:grid-cols-[minmax(0,1fr)_clamp(280px,24vw,420px)]">
+        <section aria-label="Fotografías del evento" className="event-hero relative min-h-[55vh] overflow-hidden lg:min-h-0">
+          {isEmpty || !current ? (
+            <div className="flex h-full min-h-[55vh] flex-col justify-center px-7 py-12 sm:px-14">
+              <span className="mb-5 h-px w-10 bg-white" />
+              <p className="text-lg uppercase tracking-wide text-white sm:text-2xl">Bienvenidos a SENATI</p>
+              <h1 className="mt-3 max-w-4xl text-4xl uppercase leading-tight text-[#39c9ef] sm:text-5xl xl:text-6xl">{title}</h1>
+              <p className="mt-7 max-w-xl text-lg leading-relaxed text-slate-200">Los mejores momentos se viven juntos.<br />Escanea el QR, inicia sesión y comparte tus fotografías.</p>
+              <p className="mt-10 flex items-center gap-3 border-t border-white/25 pt-6 text-sm text-slate-300"><Camera className="h-5 w-5" /> Tus fotografías aparecerán en esta pantalla.</p>
+            </div>
+          ) : <Slide key={current.id} post={current} />}
+          <div className="pointer-events-none absolute left-5 top-5 z-10 max-w-[70%] space-y-2 sm:w-80">
+            {floating.map((f) => <div key={f.id} className="animate-floatUp bg-black/75 px-4 py-3 text-sm text-white sm:text-lg"><b>{f.author}:</b> {f.text}</div>)}
           </div>
-        ))}
-      </div>
+        </section>
 
-      {!online && <div className="absolute right-6 top-6 z-30 rounded-full bg-amber-500 px-4 py-1 text-sm font-semibold text-black">Sin conexión · mostrando contenido guardado</div>}
-    </div>
+        <aside className="flex flex-col justify-center border-l border-white/10 bg-[#071528] px-7 py-8 text-white xl:px-10">
+          <p className="text-sm uppercase tracking-[0.15em] text-[#39c9ef]">Sé parte del evento</p>
+          <h2 className="mt-3 text-2xl leading-tight xl:text-3xl">Escanea y comparte</h2>
+          <div className="mx-auto my-6 w-full max-w-[300px] bg-white p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {qr ? <img src={qr} alt="Escanea para iniciar sesión y participar en el evento" width={400} height={400} className="aspect-square w-full" /> : <div className="grid aspect-square place-items-center text-sm text-slate-500">Preparando QR…</div>}
+          </div>
+          <ol className="space-y-4 text-sm text-slate-200 xl:text-base">
+            <li className="flex gap-3"><span className="text-[#39c9ef]">01</span> Escanea con la cámara de tu celular.</li>
+            <li className="flex gap-3"><span className="text-[#39c9ef]">02</span> Inicia sesión con tu cuenta de Google.</li>
+            <li className="flex gap-3"><span className="text-[#39c9ef]">03</span> Comparte tus fotos en el evento.</li>
+          </ol>
+          <Link href={EVENT_LOGIN_PATH} className="btn btn-primary mt-7 w-full gap-2"><LogIn className="h-4 w-4" /> Iniciar sesión</Link>
+          <p className="mt-3 text-center text-xs text-slate-400">También puedes ingresar desde este dispositivo.</p>
+          {screenMessage && <p role="status" className="mt-4 text-sm text-amber-200">{screenMessage}</p>}
+        </aside>
+      </div>
+      <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-white/15 bg-[#04101f] px-5 py-3 text-xs text-slate-300 sm:px-8 sm:text-sm">
+        <p>Ingeniería de Software con Inteligencia Artificial · SENATI</p>
+        <p role="status">{online ? "Álbum del evento" : "Sin conexión · mostrando contenido guardado"}</p>
+      </footer>
+    </main>
   );
 }
 
@@ -168,25 +191,25 @@ function Slide({ post }: { post: PublicPost }) {
   const layout =
     n === 1 ? "grid-cols-1" : n === 2 ? "grid-cols-2" : n === 3 ? "grid-cols-3 grid-rows-2" : n === 4 ? "grid-cols-2 grid-rows-2" : "grid-cols-3 grid-rows-2";
   return (
-    <div className="animate-fadeIn absolute inset-0 flex flex-col p-10 pb-52">
+    <div className="animate-fadeIn absolute inset-0 flex flex-col p-4 sm:p-7">
       <div className={`grid min-h-0 flex-1 gap-3 ${layout}`}>
         {post.images.map((img, i) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={img.id}
             src={cldUrl(img.publicId, "tv")}
-            alt=""
-            className={`h-full w-full rounded-2xl object-cover shadow-2xl ${n === 3 && i === 0 ? "row-span-2" : ""} ${n === 5 && i === 0 ? "col-span-2" : ""}`}
+            alt={`Fotografía de ${post.author.publicName}`}
+            className={`min-h-0 h-full w-full object-contain bg-black/30 ${n === 3 && i === 0 ? "row-span-2" : ""} ${n === 5 && i === 0 ? "col-span-2" : ""}`}
             style={{ animation: `fadeIn .8s ${i * 0.15}s both` }}
           />
         ))}
       </div>
-      <div className="mt-5 flex items-end justify-between">
+      <div className="mt-4 flex items-end justify-between gap-4 text-white">
         <div>
-          <p className="text-4xl font-bold">{post.author.publicName}</p>
-          {post.message && <p className="mt-1 max-w-4xl text-2xl opacity-90">{post.message}</p>}
+          <p className="text-xl font-medium sm:text-3xl">{post.author.publicName}</p>
+          {post.message && <p className="mt-1 line-clamp-2 max-w-4xl break-words text-sm text-slate-200 sm:text-xl">{post.message}</p>}
         </div>
-        <p className="mr-72 text-4xl">♥ {post.likeCount}</p>
+        <p className="shrink-0 text-xl text-[#39c9ef] sm:text-3xl">♥ {post.likeCount}</p>
       </div>
     </div>
   );

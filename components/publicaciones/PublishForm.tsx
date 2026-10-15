@@ -126,10 +126,11 @@ export function PublishForm({ isAuthed, resume }: { isAuthed: boolean; resume: b
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-4">
-      <div className="py-3"><p className="text-xs font-semibold uppercase tracking-widest text-senati-600">Un momento para compartir</p><h1 className="mt-2 text-2xl font-black">Publica tus fotografías</h1><p className="mt-2 text-sm text-slate-500">Elige hasta cinco fotos y acompáñalas con un mensaje.</p></div>
+    <div className="mx-auto max-w-2xl space-y-5 px-4 py-8 sm:px-6">
+      <div className="pb-3"><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-senati-600">Tu momento en el álbum</p><h1 className="mt-3 text-3xl font-bold tracking-tight">Algo bueno merece compartirse.</h1><p className="mt-3 text-sm leading-6 text-slate-500">Elige hasta cinco fotos y cuenta la historia detrás de ellas.</p></div>
+      <div className="space-y-5 rounded-3xl border border-slate-200 bg-white p-5 sm:p-8">
       {restored && <p role="status" className="rounded-xl bg-senati-50 p-4 text-sm text-senati-800">{resume ? "Ya puedes continuar. " : ""}Recuperamos tu borrador. Revisa tus fotos antes de publicar.</p>}
-      {!files.length && <div className="card flex flex-col items-center border-2 border-dashed border-slate-200 p-8 text-center"><ImagePlus className="mb-3 h-9 w-9 text-senati-500" /><p className="font-semibold">¿Qué momento quieres compartir?</p><p className="mt-2 text-sm text-slate-500">Toma una foto o selecciónala de tu galería.</p></div>}
+      {!files.length && <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-blue-200 bg-senati-50/50 px-5 py-12 text-center"><span className="mb-4 rounded-2xl bg-white p-4 shadow-sm"><ImagePlus className="h-8 w-8 text-senati-500" /></span><p className="font-semibold">Empieza con una fotografía</p><p className="mt-2 max-w-xs text-sm leading-6 text-slate-500">Abre tu cámara o elige tus mejores momentos de la galería.</p></div>}
       <div className="grid grid-cols-3 gap-2">
         {files.map((f, i) => (
           <div key={i} className="relative aspect-square overflow-hidden rounded-xl">
@@ -154,7 +155,7 @@ export function PublishForm({ isAuthed, resume }: { isAuthed: boolean; resume: b
       <input ref={galleryRef} type="file" accept={ALLOWED_MIME.join(",")} multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
 
       <label htmlFor="post-message" className="block text-sm font-semibold">Tu mensaje <span className="font-normal text-slate-400">(opcional)</span></label>
-      <textarea id="post-message" disabled={busy} className="input min-h-24" maxLength={500} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Escribe un mensaje (opcional)" />
+      <textarea id="post-message" disabled={busy} className="input min-h-32 resize-y bg-slate-50" maxLength={500} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="¿Qué hizo especial este momento?" />
       <p className="text-right text-xs text-slate-400">{message.length}/500 caracteres</p>
       <p className="text-xs text-slate-500">{files.length}/{MAX_IMAGES} fotografías · Al publicar aceptas que se muestren en el muro y en la pantalla del evento.</p>
 
@@ -163,6 +164,7 @@ export function PublishForm({ isAuthed, resume }: { isAuthed: boolean; resume: b
       <button className="btn btn-primary w-full py-3" onClick={onPublish} disabled={busy || !files.length}>
         {busy ? <><Loader2 className="h-4 w-4 animate-spin" /> {progress || "Conectando…"}</> : isAuthed ? "Publicar fotografías" : "Continuar con Google para publicar"}
       </button>
+      </div>
     </div>
   );
 }

@@ -44,7 +44,7 @@ export function PostCard({ post, readOnly, onLike }: { post: PublicPost; readOnl
   const cols = post.images.length === 1 ? "grid-cols-1" : "grid-cols-2";
 
   return (
-    <article className="card animate-fadeIn overflow-hidden">
+    <article className="animate-fadeIn overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center gap-3 p-4">
         {post.author.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -76,11 +76,11 @@ export function PostCard({ post, readOnly, onLike }: { post: PublicPost; readOnl
         ))}
       </div>
 
-      <div className="flex items-center gap-5 px-4 py-3 text-sm">
-        <button disabled={readOnly} onClick={() => onLike(post.id)} className={`flex items-center gap-1.5 ${post.likedByMe ? "text-rose-600" : "text-slate-600"} disabled:opacity-50`}>
+      <div className="flex items-center gap-3 px-4 py-3 text-sm">
+        <button aria-label="Me gusta" aria-pressed={post.likedByMe} disabled={readOnly} onClick={() => onLike(post.id)} className={`flex min-h-11 items-center gap-2 rounded-full px-3 transition ${post.likedByMe ? "bg-rose-50 text-rose-600" : "bg-slate-50 text-slate-600 hover:bg-slate-100"} disabled:opacity-50`}>
           <Heart className={`h-5 w-5 ${post.likedByMe ? "fill-current" : ""}`} /> {post.likeCount}
         </button>
-        <button onClick={toggleComments} className="flex items-center gap-1.5 text-slate-600">
+        <button aria-label="Comentarios" aria-expanded={open} onClick={toggleComments} className="flex min-h-11 items-center gap-2 rounded-full bg-slate-50 px-3 text-slate-600 transition hover:bg-slate-100">
           <MessageCircle className="h-5 w-5" /> {post.commentCount}
         </button>
       </div>

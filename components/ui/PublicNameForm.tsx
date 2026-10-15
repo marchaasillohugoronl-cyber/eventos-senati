@@ -16,10 +16,10 @@ export function PublicNameForm({ initial }: { initial: string }) {
   }
 
   return (
-    <form onSubmit={save} className="flex gap-2">
+    <form onSubmit={save} className="flex flex-wrap gap-2">
       <input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} aria-label="Nombre público" />
       <button className="btn btn-primary">Guardar</button>
-      {msg && <span role="status" className="sr-only">{msg}</span>}
+      {msg && <span role="status" className="w-full text-xs text-slate-600">{msg}</span>}
     </form>
   );
 }

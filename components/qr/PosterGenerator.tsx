@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import QRCode from "qrcode";
+import { EVENT_LOGIN_PATH } from "@/lib/event-links";
 
 const BLUE = "#0b4fb8";
 const DARK = "#04214f";
@@ -121,7 +122,7 @@ function download(canvas: HTMLCanvasElement, name: string) {
 }
 
 export function PosterGenerator({ appUrl, title }: { appUrl: string; title: string }) {
-  const url = `${appUrl.replace(/\/+$/, "")}/evento`; // sin espacios, dominio real
+  const url = `${appUrl.replace(/\/+$/, "")}${EVENT_LOGIN_PATH}`;
   const [busy, setBusy] = useState<string | null>(null);
 
   async function run(kind: "vertical" | "horizontal" | "qr") {

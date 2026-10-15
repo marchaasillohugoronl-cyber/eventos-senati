@@ -37,3 +37,63 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Lenguaje visual de la página de referencia SENATI, limitado al evento. */
+@font-face {
+  font-family: "Roboto";
+  src: url('/fonts/roboto-400.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Roboto";
+  src: url('/fonts/roboto-500.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Roboto";
+  src: url('/fonts/roboto-700.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+.event-theme {
+  background: #f2f2f2;
+  color: #292929;
+  font-family: "Roboto", "Arial", sans-serif;
+}
+.event-hero {
+  background-color: #071528;
+  background-image: linear-gradient(90deg, rgba(3, 20, 37, .88), rgba(3, 14, 29, .72)), url('/senati-evento.jpg');
+  background-position: center;
+  background-size: cover;
+}
+.event-theme :is(h1, h2, h3) {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.event-theme h2 { text-transform: uppercase; }
+.event-theme :is(.rounded-3xl, .rounded-2xl, .card) {
+  border-radius: 0;
+  box-shadow: none;
+}
+.event-theme .btn {
+  border-radius: 3px;
+  font-weight: 400;
+  min-height: 46px;
+}
+.event-theme .btn-primary {
+  background: #e81956;
+  color: white;
+}
+.event-theme .btn-primary:hover { background: #c91046; }
+.event-theme .btn-ghost { color: #163ff5; }
+.event-theme .input { border-radius: 2px; }
+.event-theme .event-participate h2 { color: #39c9ef; }
+.event-theme .event-participate .btn-primary { background: #e81956; }
+.event-theme .event-participate .btn-primary:hover { background: #c91046; }
+.event-theme .text-senati-600 { color: #1645f5; }
+.event-theme.tv-display { background: #061426; color: white; }
