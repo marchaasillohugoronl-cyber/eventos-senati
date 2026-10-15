@@ -54,6 +54,8 @@ Antes de actualizar Ably, comprobar la compilación de `/evento` y `/tv`.
 Importa el repo, copia las variables de `.env.example`, y ejecuta `npx prisma migrate deploy` contra Neon.
 Define `NEXT_PUBLIC_APP_URL` con el dominio final **antes** de generar los afiches.
 
+En producción, define también `AUTH_URL=https://eventshare-senati.vercel.app` para que el inicio de sesión desde el servidor vuelva al dominio público. En el cliente OAuth de Google, registra `https://eventshare-senati.vercel.app/api/auth/callback/google` como URI de redirección autorizada. Después de cambiar las variables en Vercel, vuelve a desplegar para aplicarlas.
+
 ## 6. Uso en el evento
 
 - Admin → `/admin` → **Iniciar evento**.
